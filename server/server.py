@@ -6,12 +6,14 @@ import random
 def read_msg(clients, sock_client, addr_client, username_client):
     while True:
         # terima pesan
-        data = sock_client.recv(65535)
+        data = sock_client.recv(65535).decode("utf-8")
+        print(data)
+
         if len(data) == 0:
             break
         if "|" in data:
             # parsing pesannya
-            dest, msg, cmd = data.decode("utf-8").split("|")
+            dest, msg, cmd = data.split("|")
             # cmd = '' + msg 
             file_name = msg
             file_path = find_file(file_name)
@@ -63,12 +65,13 @@ def read_msg(clients, sock_client, addr_client, username_client):
             print(data)
         else:
             if clients[username_client][4] == "rebel":
-                clients[username_client][5] = data.decode("utf-8")
+                clients[username_client][5] = data
+                send_msg(sock_client, "Kamu bersembunyi di {}".format(data), "sembunyi")
             elif clients[username_client][4] == "hunter":
-                opt_place = data.decode("utf-8")
+                opt_place = data
                 for _, _, _, role, place in clients.values():
                     if role == "rebel":
-                        rebels += 1
+                        # rebels += 1
                         if opt_place == place:
                             hunted += 1
                             if hunted == rebels:
@@ -116,7 +119,6 @@ clients = {}
 # friends = set()
 
 hunted = 0
-rebels = 0
 
 while True:
     # accept connection from client
@@ -137,4 +139,8 @@ while True:
     role = random.choice(roles)
 
     # simpan informasi tentang client ke dictionary
-    clients[username_client] = (sock_client, addr_client, thread_client, friends, role, place)
+    clients[username_client] = [sock_client, addr_client, thread_client, friends, role, place]
+    rebels = len(clients)
+
+    for sock_client, addr_client, _, _, role, _ in clients.values():
+        send_msg(sock_client, role, "Pembagian role")

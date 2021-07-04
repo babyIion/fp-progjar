@@ -5,36 +5,56 @@ import threading
 import time
 from threading import Timer
 
-def countdown(t):
-    while t:
-        mins, secs = divmod(t, 60)
-        timer = '{:02d}:{:02d}'.format(mins, secs)
-        print(timer, end="\r")
-        time.sleep(1)
-        t -= 1
+def message():
+    cmd = input("Sembari bersembunyi, apa yang ingin Anda lakukan? \nbcast: broadcast pesan\nadd: menambah teman\nmsg: mengirim pesan\nfile: mengirim file\n>>>")
+    if cmd == "bcast":
+        dest = "bcast"
+        msg = input("Masukkan pesan Anda: ")
+    elif cmd == "msg":
+        dest = input("Masukkan username tujuan: ")
+        msg = input("Masukkan pesan Anda: ")
+    elif cmd == "add":
+        dest = input("Masukkan username tujuan: ")
+        msg = "add"
+    elif cmd == "file":
+        dest = input("Masukkan username tujuan: ")
+        msg = input("Masukkan lokasi file yang akan dikirim: ")
+    elif cmd == "exit":
+        socket_client.close()
+    else:
+        "Ups, command tidak ada! Coba lagi."
 
-    print("Waktu habis!!")
+    socket_client.send(bytes("{}|{}|{}".format(dest, msg, cmd), "utf-8"))
+
+# def countdown(t):
+#     while t:
+#         mins, secs = divmod(t, 60)
+#         timer = '{:02d}:{:02d}'.format(mins, secs)
+#         print(timer, end="\r")
+#         time.sleep(1)
+#         t -= 1
+
+#     print("Waktu habis!!")
 
 
 def rebel_hide(socket_client):
     # countdown(int(5))
-    t = Timer(5, print, ['Waktu habis!'])
-    t.start()
+    # t = Timer(5, print, ['Waktu habis!'])
+    # t.start()
     opt_place = input("Ayo cari tempat untuk bersembunyi!\n1. Pohon dekat jendela\n2. Meja teras\n3. Semak teras\n4. Rongsokan pojok halaman\n>>> ")
-    t.cancel()
-
-    return opt_place
+    # t.cancel()
     
     socket_client.send(bytes("{}".format(opt_place), "utf-8"))
 
-def hunter_seek(socket_client):
-    print("Tunggu para rebel untuk bersembunyi dahulu ya!")
-    countdown(10)
+    message()
 
-    t = Timer(5, print, ['Waktu habis!'])
-    t.start()
+def hunter_seek(socket_client):
+    # countdown(10)
+
+    # t = Timer(5, print, ['Waktu habis!'])
+    # t.start()
     opt_place = input("Para Rebel telah bersembunyi, mau cari ke mana?\n1. Pohon dekat jendela\n2. Meja teras\n3. Semak teras\n4. Rongsokan pojok halaman\n5. Bawah pohon beringin\n6. Gundukan semen\n>>> ")
-    t.cancel()
+    # t.cancel()
     
     socket_client.send(bytes("{}".format(opt_place), "utf-8"))
 
@@ -51,6 +71,19 @@ def read_msg(socket_client):
                 if not isi_data:
                     break
                 file.write(isi_data)
+        elif cmd == "Pembagian role":
+            print("Kamu menjadi " + data)
+            if data == "rebel":
+                rebel_hide(socket_client)
+            else:
+                print("Tunggu para rebel untuk bersembunyi dahulu ya!")
+                hunter_seek(socket_client)
+        elif cmd == "tangkap" or cmd == "gagal tangkap":
+            print(data)
+            hunter_seek(socket_client)
+        elif cmd == "hunter menang":
+            print(data)
+            socket_client.close()
         else:
             print(data)
 
@@ -67,34 +100,34 @@ socket_client.send(bytes(sys.argv[1], "utf-8"))
 thread_client = threading.Thread(target=read_msg, args=(socket_client,))
 thread_client.start()
 
-while True:
+# while True:
     # kirim/terima pesan
     # terima pesan tentang role
     # role = socket_client.recv(65535).decode("utf-8")
-    role = input("Apa role Anda? (hunter atau rebel)\n>>> ") # buat testing
-    if role == "rebel":
-        opt_place = rebel_hide(socket_client)
-    else:
-        opt_place = hunter_seek(socket_client)
+    # role = input("Apa role Anda? (hunter atau rebel)\n>>> ") # buat testing
+    # if role == "rebel":
+    #     opt_place = rebel_hide(socket_client)
+    # else:
+    #     opt_place = hunter_seek(socket_client)
     
     
-    cmd = input("Apa yang ingin Anda lakukan? \nbcast: broadcast pesan\nadd: menambah teman\nmsg: mengirim pesan\nfile: mengirim file\n>>>")
-    if cmd == "bcast":
-        dest = "bcast"
-        msg = input("Masukkan pesan Anda: ")
-    elif cmd == "msg":
-        dest = input("Masukkan username tujuan: ")
-        msg = input("Masukkan pesan Anda: ")
-    elif cmd == "add":
-        dest = input("Masukkan username tujuan: ")
-        msg = "add"
-    elif cmd == "file":
-        dest = input("Masukkan username tujuan: ")
-        msg = input("Masukkan lokasi file yang akan dikirim: ")
-    elif cmd == "exit":
-        socket_client.close()
-        break
-    else:
-        "Ups, command tidak ada! Coba lagi."
+    # cmd = input("Apa yang ingin Anda lakukan? \nbcast: broadcast pesan\nadd: menambah teman\nmsg: mengirim pesan\nfile: mengirim file\n>>>")
+    # if cmd == "bcast":
+    #     dest = "bcast"
+    #     msg = input("Masukkan pesan Anda: ")
+    # elif cmd == "msg":
+    #     dest = input("Masukkan username tujuan: ")
+    #     msg = input("Masukkan pesan Anda: ")
+    # elif cmd == "add":
+    #     dest = input("Masukkan username tujuan: ")
+    #     msg = "add"
+    # elif cmd == "file":
+    #     dest = input("Masukkan username tujuan: ")
+    #     msg = input("Masukkan lokasi file yang akan dikirim: ")
+    # elif cmd == "exit":
+    #     socket_client.close()
+    #     break
+    # else:
+    #     "Ups, command tidak ada! Coba lagi."
 
-    socket_client.send(bytes("{}|{}|{}".format(dest, msg, cmd), "utf-8"))
+    # socket_client.send(bytes("{}|{}|{}".format(dest, msg, cmd), "utf-8"))
