@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import random
 
 def read_msg(clients, sock_client, addr_client, username_client):
     while True:
@@ -8,61 +9,77 @@ def read_msg(clients, sock_client, addr_client, username_client):
         data = sock_client.recv(65535)
         if len(data) == 0:
             break
-        
-        # parsing pesannya
-        dest, msg, cmd = data.decode("utf-8").split("|")
-        # cmd = '' + msg 
-        file_name = msg
-        file_path = find_file(file_name)
+        if "|" in data:
+            # parsing pesannya
+            dest, msg, cmd = data.decode("utf-8").split("|")
+            # cmd = '' + msg 
+            file_name = msg
+            file_path = find_file(file_name)
 
-        msg = "<{}>: {}".format(username_client, msg)
+            msg = "<{}>: {}".format(username_client, msg)
 
-        if cmd == "bcast":
-            # teruskan pesan ke semua client
-            send_broadcast(clients, msg, addr_client, cmd, username_client)
-        elif cmd == "add":
-            if dest in clients:
-                if dest in clients[username_client][3]:
-                    send_msg(sock_client, "{} sudah menjadi teman".format(dest), cmd)
+            if cmd == "bcast":
+                # teruskan pesan ke semua client
+                send_broadcast(clients, msg, addr_client, cmd, username_client)
+            elif cmd == "add":
+                if dest in clients:
+                    if dest in clients[username_client][3]:
+                        send_msg(sock_client, "{} sudah menjadi teman".format(dest), cmd)
+                    else:
+                        send_msg(sock_client, "Anda telah berteman dengan {}".format(dest), cmd)
+                        clients[username_client][3].add(dest)
+
+                        dest_sock_client = clients[dest][0]
+                        send_msg(dest_sock_client, "Anda telah berteman dengan {}".format(username_client), cmd)
+                        clients[dest][3].add(username_client)
                 else:
-                    send_msg(sock_client, "Anda telah berteman dengan {}".format(dest), cmd)
-                    clients[username_client][3].add(dest)
-
+                    send_msg(sock_client, "{} tidak ditemukan".format(dest), cmd)
+            elif cmd == "file":
+                if dest in clients[username_client][3]:
                     dest_sock_client = clients[dest][0]
-                    send_msg(dest_sock_client, "Anda telah berteman dengan {}".format(username_client), cmd)
-                    clients[dest][3].add(username_client)
-            else:
-                send_msg(sock_client, "{} tidak ditemukan".format(dest), cmd)
-        elif cmd == "file":
-            if dest in clients[username_client][3]:
-                dest_sock_client = clients[dest][0]
 
-                while True:
-                    if file_path is None:
-                        cmd = ""
-                        send_msg(sock_client, "File tidak ditemukan", cmd)
-                        break
-                    send_msg(dest_sock_client, file_name, cmd)
-                    file = open(file_path, 'rb')
                     while True:
-                        data = file.read(1024)
-                        if not data:
+                        if file_path is None:
+                            cmd = ""
+                            send_msg(sock_client, "File tidak ditemukan", cmd)
                             break
-                        socket.send(data)
-                    file.close()
-            else:
-                send_msg(sock_client, "{} belum menjadi teman".format(dest), cmd) 
-        elif cmd == "msg":
-            if dest in clients[username_client][3]:
-                print(clients[username_client][3])
-                dest_sock_client = clients[dest][0]
-                send_msg(dest_sock_client, msg, cmd)
-            else:
-                send_msg(sock_client, "{} belum menjadi teman".format(dest), cmd)    
-        print(data)
+                        send_msg(dest_sock_client, file_name, cmd)
+                        file = open(file_path, 'rb')
+                        while True:
+                            data = file.read(1024)
+                            if not data:
+                                break
+                            socket.send(data)
+                        file.close()
+                else:
+                    send_msg(sock_client, "{} belum menjadi teman".format(dest), cmd) 
+            elif cmd == "msg":
+                if dest in clients[username_client][3]:
+                    print(clients[username_client][3])
+                    dest_sock_client = clients[dest][0]
+                    send_msg(dest_sock_client, msg, cmd)
+                else:
+                    send_msg(sock_client, "{} belum menjadi teman".format(dest), cmd)    
+            print(data)
+        else:
+            if clients[username_client][4] == "rebel":
+                clients[username_client][5] = data.decode("utf-8")
+            elif clients[username_client][4] == "hunter":
+                opt_place = data.decode("utf-8")
+                for _, _, _, role, place in clients.values():
+                    if role == "rebel":
+                        rebels += 1
+                        if opt_place == place:
+                            hunted += 1
+                            if hunted == rebels:
+                                send_msg(sock_client, "Kamu berhasil menangkap semua rebel! Selamat, hunter adalah pemenang!", "hunter menang")
+                            else:
+                                send_msg(sock_client, "Kamu berhasil menangkap rebel! Coba cari rebel yang lain!", "tangkap")
+                        elif opt_place != place:
+                            send_msg(sock_client, "Ups tidak ada rebel di sini! Coba cari tempat lain!", "gagal tangkap")
 
-    sock_client.close()
-    print("Connection closed", addr_client)
+        sock_client.close()
+        print("Connection closed", addr_client)
 
 # kirim ke semua klien
 def send_broadcast(clients, data, sender_addr_client, cmd, username_client):
@@ -98,6 +115,9 @@ sock_server.listen(5)
 clients = {}
 # friends = set()
 
+hunted = 0
+rebels = 0
+
 while True:
     # accept connection from client
     sock_client, addr_client = sock_server.accept()
@@ -111,6 +131,10 @@ while True:
     thread_client.start()
 
     friends = set()
+    place = ""
+    roles = ["hunter", "rebel"]
+
+    role = random.choice(roles)
 
     # simpan informasi tentang client ke dictionary
-    clients[username_client] = (sock_client, addr_client, thread_client, friends)
+    clients[username_client] = (sock_client, addr_client, thread_client, friends, role, place)
