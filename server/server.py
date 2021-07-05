@@ -3,6 +3,8 @@ import threading
 import os
 import random
 
+hunted = 0
+
 def read_msg(clients, sock_client, addr_client, username_client):
     while True:
         # terima pesan
@@ -69,7 +71,7 @@ def read_msg(clients, sock_client, addr_client, username_client):
                 send_msg(sock_client, "Kamu bersembunyi di {}".format(data), "sembunyi")
             elif clients[username_client][4] == "hunter":
                 opt_place = data
-                for _, _, _, role, place in clients.values():
+                for _, _, _, _,role, place in clients.values():
                     if role == "rebel":
                         # rebels += 1
                         if opt_place == place:
@@ -81,7 +83,7 @@ def read_msg(clients, sock_client, addr_client, username_client):
                         elif opt_place != place:
                             send_msg(sock_client, "Ups tidak ada rebel di sini! Coba cari tempat lain!", "gagal tangkap")
 
-        sock_client.close()
+        # sock_client.close()
         print("Connection closed", addr_client)
 
 # kirim ke semua klien
@@ -93,6 +95,7 @@ def send_broadcast(clients, data, sender_addr_client, cmd, username_client):
             send_msg(sock_client, data, cmd)
 
 def send_msg(socket_client, data, cmd):
+    print("{}|{}".format(data, cmd))
     socket_client.send(bytes("{}|{}".format(data, cmd), "utf-8"))
 
 # cek file path
@@ -118,7 +121,8 @@ sock_server.listen(5)
 clients = {}
 # friends = set()
 
-hunted = 0
+hunter = 0
+rebel = 0
 
 while True:
     # accept connection from client
@@ -137,6 +141,14 @@ while True:
     roles = ["hunter", "rebel"]
 
     role = random.choice(roles)
+    while hunter != 1:
+        role = random.choice(roles)
+        if role == "hunter":
+            print(hunter)
+            hunter += 1
+        else:
+            print(rebel)
+            rebel += 1
 
     # simpan informasi tentang client ke dictionary
     clients[username_client] = [sock_client, addr_client, thread_client, friends, role, place]
